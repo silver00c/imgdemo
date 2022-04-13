@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}首页{% endblock title %}
+
+{% block content %}
+    <div class="container py-2">
+        <div class="row" data-masonry='{"percentPosition": true}'>
+            <form 
+            method="post"
+            enctype="multipart/form-data"
+            >
+                {% csrf_token %}
+                <div class="col py-2">
+                    <input
+                        class="form-control" 
+                        type="file"
+                        id="images" 
+                        name="images" 
+                        multiple="multiple"
+                        accept="image/*"
+                        onchange="changepic(this)"
+                    >
+                </div>
+                <img src="" id="show" width="200"><br>
+                <p>处理结果: <span id='result'></span></p>
+                <button type="submit" onclick="updateInfo()">上传</button>
+                {% comment %} <button type="submit" class="btn btn-primary" id="process"action="{% url 'photo:upload' %}">处理</button> id="uploadpro"  "{% endcomment %}
+            </form>
+
+            <form >
+                {% csrf_token %}
+                <label>
+                    <input id="image-input" hidden type="file" name="image">
+                </label>
+            </form>
+            
+
+            <form action="{% url 'photo:download' %}"
+            method="post"
+            >
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="file_path" class="form-label">ImagePath</label>
+                    <input type="text" class="form-control" id="file_path" name="file_path">
+                </div>
+                <button type="submit" class="btn btn-primary">下载</button>
+            </form>
+            {% comment %} createObjectURL的方法 {% endcomment %}
+            {% comment %} <form action="" enctype="multipart/form-data">
+                <input id="file" class="filepath" onchange="changepic(this)" type="file"><br>
+                <img src="" id="show" width="200">
+            </form> {% endcomment %}
+            
+            <script src="http://apps.bdimg.com/libs/jquery/1.11.1/jquery.min.js"></script>
+            <script>
+                $('#image-input').on('change',function () {
+                    {#alert('hello');#}
+                    upload();
+                    // 获取用户最后一次选择的图片
+                    var choose_file = $(this)[0].files[0];
+                    // 创建一个新的FileReader对象，用来读取文件信息
+                    var reader = new FileReader();
+                    // 读取用户上传的图片的路径
+                    reader.readAsDataURL(choose_file);
+                    // 读取完毕之后，将图片的src属性修改成用户上传的图片的本地路径
+        
+                    reader.onload = function () {
+                         $("#image-img").attr("src", reader.result)
+                    };
+        
+                });
+                function upload() {
+                    var formdata = new FormData();
+                    formdata.append("image", $("#image-input")[0].files[0]);
+                    formdata.append("csrfmiddlewaretoken",$("[name='csrfmiddlewaretoken']").val());
+                    $.ajax({
+                        processData:false,
+                        contentType:false,
+                        url:'/photo/upload/',
+                        type:'post',
+                        data:formdata,
+                        dataType:"json",
+                        success:function (arg) {
+                            if (arg.state == 1){
+                                alert('上传成功！')
+                            }else {
+                                alert('上传失败！')
+                            }
+                        },error: function () {
+                            alert("访问繁忙，请重试")
+                        }
+        
+                    })
+                }
+
+
+                function changepic(obj) {
+                    //console.log(obj.files[0]);//这里可以获取上传文件的name
+                    var newsrc=getObjectURL(obj.files[0]);
+                    document.getElementById('show').src=newsrc;
+                }
+                //建立一個可存取到該file的url
+                function getObjectURL(file) {
+                    var url = null ;
+                    console.log(file)
+                    // 下面函数执行的效果是一样的，只是需要针对不同的浏览器执行不同的 js 函数而已
+                    if (window.createObjectURL!=undefined) { // basic
+                        url = window.createObjectURL(file) ;
+                    } else if (window.URL!=undefined) { // mozilla(firefox)
+                        url = window.URL.createObjectURL(file) ;
+                    } else if (window.webkitURL!=undefined) { // webkit or chrome
+                        url = window.webkitURL.createObjectURL(file) ;
+                    }
+                    return url ;
+                }   
+
+                function updateInfo() {
+                    var data = document.forms.namedItem("images");
+                    $.ajax({
+                        url: '/photo/upload/',
+                        type: "post",
+                        data: data,
+                        contentType: false, //必须
+                        processData: false, //必须                       
+                        success: function (returnMsg) {
+                            //var d = $.parseJSON(returnMsg);
+                            console.log(returnMsg)
+                            var d = eval("("+returnMsg+")");//var json = eval("("+data+")");
+                            if(d.success){
+                                console.log("here2")
+                                $("#result").html("");
+                                $.each(ret, function(index, item){
+                                    $('#result').append('<img src="/media/'+item+'">');
+                                })
+                            }else{
+                                $(".alertMsg").html(d.msg);
+                                return;
+                            }
+                        }
+                    });
+                 } 
+        
+                $(document).ready(function(){
+                    $("#uploadpro").click(function(){
+                        var images = $("#images").val();
+                        console.log(images)
+                        $.get("{% url 'photo:upload' %}",{'images':images}, function(ret){
+                          console.log(ret)
+                          $('#result').html('') //清空前面的结果
+                          $.each(ret, function(index, item){
+                              console.log(index,item)
+                              $('#result').append('<img src="media/photo/'+item+'">');
+                          })
+                      })
+                    });
+                  });
+            
+                $(document).ready(function(){
+                  $("#process").click(function(){
+                    //var images = $("#images").val();
+                    //console.log(images)
+                    //newsrc=window.createObjectURL(images);
+                    //console.log(newsrc)
+                    $.get("{% url 'photo:processimg' %}", function(ret){
+                        console.log(ret)
+                        //$('#result').html('') //清空前面的结果
+                        $.each(ret, function(index, item){
+                            console.log(index,item)
+                            $('#result').append('<img src="media/photo/'+item+'">');
+                        })
+                    })
+                  });
+                });
+            </script>    
+        </div>
+    </div>
+{% endblock content %}

@@ -1,0 +1,54 @@
+<form >
+    {% csrf_token %}
+    <div class="container py-2">
+        <img id="image_upload" class="searchUploadImage" src="" width="48" height="48" title="图片智能搜索">
+        <input id="image-input" hidden type="file" name="image">
+    </div>
+</form>
+
+<script>
+    // 上传文件按钮（label里的图片）点击事件
+$('#image-input').on('change',function () {
+    {#alert('hello');#}
+    upload();
+
+    // 获取用户最后一次选择的图片
+    var choose_file = $(this)[0].files[0];
+
+    // 创建一个新的FileReader对象，用来读取文件信息
+    var reader = new FileReader();
+
+    // 读取用户上传的图片的路径
+    reader.readAsDataURL(choose_file);
+
+    // 读取完毕之后，将图片的src属性修改成用户上传的图片的本地路径
+    reader.onload = function () {
+         $("#image-img").attr("src", reader.result)
+    };
+
+});
+function upload() {
+    var formdata = new FormData();
+    formdata.append("image", $("#image-input")[0].files[0]);
+    formdata.append("csrfmiddlewaretoken",$("[name='csrfmiddlewaretoken']").val());
+    $.ajax({
+        processData:false,
+        contentType:false,
+        url:'photo/upload/',
+        type:'post',
+        data:formdata,
+        dataType:"json",
+        success:function (arg) {
+            if (arg.state == 1){
+                alert('上传成功！')
+            }else {
+                alert('上传失败！')
+            }
+        },error: function () {
+            alert("访问繁忙，请重试")
+        }
+
+    })
+}
+
+</script>
